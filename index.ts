@@ -5,8 +5,8 @@ import * as crypto from 'crypto';
 class Transaction {
   constructor(
     public amount: number,
-    public payer: string, // public key
-    public payee: string // public key
+    public sender: string, // public key
+    public recipient: string // public key
   ) {}
 
   toString() {
@@ -86,33 +86,6 @@ class Chain {
   }
 }
 
-// Wallet gives a user a public/private keypair
-class Wallet {
-  public publicKey: string;
-  public privateKey: string;
-
-  constructor() {
-    const keypair = crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    });
-
-    this.privateKey = keypair.privateKey;
-    this.publicKey = keypair.publicKey;
-  }
-
-  sendMoney(amount: number, payeePublicKey: string) {
-    const transaction = new Transaction(amount, this.publicKey, payeePublicKey);
-
-    const sign = crypto.createSign('SHA256');
-    sign.update(transaction.toString()).end();
-
-    const signature = sign.sign(this.privateKey);
-    Chain.instance.addBlock(transaction, this.publicKey, signature);
-  }
-}
-
 // Setup Express.js server
 const app = express();
 const port = 3000; // Choose your desired port
@@ -120,12 +93,12 @@ const port = 3000; // Choose your desired port
 // Middleware to parse JSON bodies of incoming requests
 app.use(express.json());
 
-// Endpoint to send a transaction
-app.post('/transaction', (req: Request, res: Response) => {
-  const { amount, senderPrivateKey, senderPublicKey, payeePublicKey } = req.body;
+// Endpoint to send money
+app.post('/send-money', (req: Request, res: Response) => {
+  const { amount, senderPublicKey, senderPrivateKey, recipientPublicKey } = req.body;
 
   // Create a new transaction
-  const transaction = new Transaction(amount, senderPublicKey, payeePublicKey);
+  const transaction = new Transaction(amount, senderPublicKey, recipientPublicKey);
 
   // Sign the transaction
   const sign = crypto.createSign('SHA256');
